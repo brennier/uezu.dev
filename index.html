@@ -6,20 +6,32 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>上江洲ベネット</title>
     <style>
-        body { background: #002b36; }
-        p { color: #93a1a1; font-family: monospace; font-size: 36px; }
-        h1 { color: #93a1a1; font-family: monospace; font-size: clamp(0px, 14vw, 96px); }
+        @font-face {
+            font-family: 'Hack';
+            src: url('Hack-Regular.ttf');
+        }
+        body { background: #002b36; color: #93a1a1; font-family: Hack, monospace; font-size: clamp(0px, 5vw, 32px); }
+        h1 { font-size: clamp(0px, 13vw, 96px); }
         .center-screen {
-            position: fixed;
+            position: absolute;
             top: 50%;
             left: 50%;
             margin-right: -50%;
             transform: translate(-50%, -50%);
+            width: clamp(0px, 95vw, 672px);
+        }
+        li {
+            margin-left: clamp(0px, 1vw, 12px);
+            margin-bottom: clamp(0px, 3vw, 36px);
         }
         em {
             font-style: normal;
             color: #dc322f;
         }
+        a:link, a:visited, a:hover, a:active {
+            color: #6c71c4;
+        }
+        p { margin: clamp(0px, 1vw, 12px); }
     </style>
     <!-- 
         <link rel="stylesheet" href="style.css">
@@ -30,6 +42,18 @@
         <h1>
             <em>上江洲</em>ベネット
         </h1>
+
+        <p>Programming Projects:</p>
+        <ul>
+            <li>
+                <p><a href="https://javascript.brennier.com/multiple_ball_simulation.html">Multiple Ball Simulation</a></p>
+                <p>A simple physics program written in Javascript where you can spawn balls and change gravity</p>
+            </li>
+            <li>
+                <p><a href="https://brennier.com/c_projects/raycaster/">Raycaster</a></p>
+                <p>A Wolfenstein 3D-like game engine written in C and compiled into WebAssembly (unfinished)</p>
+            </li>
+        </ul>
     </div>
   </body>
 </html>
