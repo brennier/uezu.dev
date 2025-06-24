@@ -1,0 +1,364 @@
+<html lang="en">
+  <head>
+    <style>
+        html, body {
+            margin:  0 !important;
+            padding: 0 !important;
+        }
+
+        #canvas {
+            background-color: #313438;
+            touch-action: none;
+            -webkit-user-select: none; /* Safari */
+            user-select: none;
+        }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" width="1500" height="1500"></canvas>
+  </body>
+
+<script>
+
+class Vector {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    add(other) {
+        return new Vector(this.x + other.x, this.y + other.y);
+    }
+
+    minus(other) {
+        return new Vector(this.x - other.x, this.y - other.y);
+    }
+
+    scale(number) {
+        return new Vector(this.x * number, this.y * number);
+    }
+
+    in_bounds(min_x, min_y, max_x, max_y) {
+        return (min_x < x && x < max_x &&
+                min_y < y && y < max_y);
+    }
+
+    // rotates the vector 90 degrees counter-clockwise
+    rotate() {
+        let temp = this.x;
+        this.x = this.y;
+        this.y = - temp;
+    }
+
+    rotateBy(degrees) {
+        let radians = degrees * Math.PI/180;
+        let temp_x = this.x;
+        let temp_y = this.y;
+        this.x = temp_x * Math.cos(radians) - temp_y * Math.sin(radians);
+        this.y = temp_x * Math.sin(radians) + temp_y * Math.cos(radians);
+    }
+
+    distance(other) {
+        let x = this.x - other.x;
+        let y = this.y - other.y;
+        return Math.sqrt(x * x + y * y);
+    }
+
+    length() {
+        return Math.sqrt(this.x * this.x + this.y * this.y);
+    }
+
+    normalize() {
+        let length = this.length();
+        return this.scale(1.0 / length);
+    }
+
+    dot_product(other) {
+        return this.x * other.x + this.y * other.y;
+    }
+}
+
+class Button {
+    static instances = [];
+
+    constructor(x, y, width, height, text1, text2, action) {
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.text1 = text1;
+        this.text2 = text2;
+        this.action = action;
+        Button.instances.push(this);
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.beginPath();
+        ctx.roundRect(this.x, this.y, this.width, this.height, 10, true);
+        ctx.fill();
+
+        ctx.fillStyle = "black";
+        ctx.fillText(this.text1, this.x + this.width / 2, this.y + this.height / 2 - 20);
+        ctx.fillText(this.text2, this.x + this.width / 2, this.y + this.height / 2 + 20);
+        ctx.restore();
+    }
+
+    is_clicked(x,y) {
+        return this.x < x && x < this.x + this.width && this.y < y && y < this.y + this.height;
+    }
+
+    do_action() {
+        this.action();
+    }
+}
+
+class Particle {
+    static particle_colors = ['Beige', 'DarkCyan', 'DarkOrange', 'Aqua', 'Chartreuse', 'Maroon', 'Plum', 'Salmon'];
+    static current_color = Math.floor(Math.random() * Particle.particle_colors.length);
+
+    constructor(x_pos, y_pos) {
+        this.pos = new Vector(x_pos, y_pos);
+        this.vel = new Vector(0, 0);
+        this.color = Particle.particle_colors[Particle.current_color];
+        Particle.current_color++;
+        Particle.current_color %= Particle.particle_colors.length;
+        this.size = Math.random() * 40 + 10;
+        this.is_being_dragged = false;
+    }
+
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.pos.x, this.pos.y, this.size, 0, 2 * Math.PI);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+    }
+
+    run_physics(delta_time) {
+        if (this.is_being_dragged) return;
+
+        this.vel = this.vel.add(acc.scale(delta_time * 60));
+        this.pos = this.pos.add(this.vel.scale(delta_time * 60));
+
+        this.vel = this.vel.scale(.995);
+
+        if (this.pos.y < this.size) { this.pos.y = this.size; this.vel.y *= -1; }
+        if (this.pos.y + this.size > window.innerHeight) { this.pos.y = window.innerHeight - this.size; this.vel.y *= -1; }
+        if (this.pos.x < this.size) { this.pos.x = this.size; this.vel.x *= -1; }
+        if (this.pos.x + this.size > window.innerWidth) { this.pos.x = window.innerWidth - this.size; this.vel.x *= -1; }
+    }
+
+    // Assume that masses are equal
+    check_collision(other) {
+        let overlap = this.size + other.size - this.pos.distance(other.pos);
+        if (overlap < 0) return; // no collision
+
+        // determine the vector of collision and the vector of normality
+        let collision_vector = other.pos.minus(this.pos).normalize();
+        let normal_vector = new Vector(collision_vector.y, - collision_vector.x);
+
+        // Adjust the ball positions so that they aren't overlapping
+        this.pos = this.pos.add(collision_vector.scale(- overlap / 2.0));
+        other.pos = other.pos.add(collision_vector.scale(overlap / 2.0));
+
+        // project the velocities onto the collision vector and the normal vector
+        var this_normal_velocity = this.vel.dot_product(normal_vector);
+        var other_normal_velocity = other.vel.dot_product(normal_vector);
+        var this_collision_velocity = this.vel.dot_product(collision_vector);
+        var other_collision_velocity = other.vel.dot_product(collision_vector);
+
+        // Adjust collision velocities based on the masses of the objects (check Wikipedia on elastic collisions)
+        var this_mass = this.size * this.size;
+        var other_mass = other.size * other.size;
+
+        var this_collision_velocity_new = (this_mass - other_mass) * this_collision_velocity + 2 * other_mass * other_collision_velocity;
+        this_collision_velocity_new /= this_mass + other_mass;
+        var other_collision_velocity_new = 2 * this_mass * this_collision_velocity + (other_mass - this_mass) * other_collision_velocity;
+        other_collision_velocity_new /= this_mass + other_mass;
+
+        // Keep the normal components the same, but update the collision components
+        this.vel = this.vel.add(collision_vector.scale(this_collision_velocity_new - this_collision_velocity));
+        other.vel = other.vel.add(collision_vector.scale(other_collision_velocity_new - other_collision_velocity));
+    }
+}
+
+var particles = [];
+particles[0] = new Particle(200, 200);
+
+var acc = new Vector(0, 0.5);
+var arrow_direction = 0;
+var change_gravity_btn = new Button(150, 10, 200, 90, "Change", "Gravity", changeGravity);
+var toggle_fullscreen_btn = new Button(360, 10, 200, 90, "Toggle", "Fullscreen", toggleFullscreen);
+var clear_balls_btn = new Button(570, 10, 200, 90, "Clear", "Balls", clearBalls);
+
+function draw(fps) {
+    // Setup canvas for drawing
+    const canvas = document.getElementById("canvas");
+    if (!canvas.getContext) return;
+    const ctx = canvas.getContext("2d");
+
+    // Clear the screen
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw the balls
+    for (var i = 0; i < particles.length; i++) { particles[i].draw(ctx); }
+
+    // Draw buttons
+    for (var i = 0; i < Button.instances.length; i++) Button.instances[i].draw(ctx);
+
+    // Draw the arrow indicating the direction of gravity
+    ctx.save();
+    ctx.fillStyle = "red";
+    ctx.translate(70, 100);
+    ctx.rotate(- 3.14 / 2 * arrow_direction);
+    ctx.beginPath();
+    ctx.moveTo(-50, -50);
+    ctx.lineTo(0, -25);
+    ctx.lineTo(50, -50);
+    ctx.lineTo(0, 50);
+    ctx.lineTo(-50, -50);
+    ctx.fill();
+    ctx.restore();
+
+    // Draw FPS
+    ctx.font = '32px Arial';
+    ctx.fillStyle = "red";
+    ctx.textAlign = "left";
+    ctx.fillText("FPS: " + fps, 10, 30);
+}
+
+var screen_clicked = false;
+var pressed_keys = {};
+var dragging_particle = false;
+var creating_particle = false;
+var last_input = performance.now();
+function check_key() {
+    if (!screen_clicked && !pressed_keys[32]) return;
+
+    // If the time since last input was less than .2 seconds, ignore it
+    var time_now = performance.now();
+    if (time_now - last_input < 200) {
+        screen_clicked = false;
+        pressed_keys[32] = false;
+        return;
+    }
+
+    if (screen_clicked) {
+        // Was a button clicked?
+        for (var i = 0; i < Button.instances.length; i++) {
+            if (Button.instances[i].is_clicked(screen_clicked.x, screen_clicked.y)) {
+                Button.instances[i].do_action();
+                last_input = performance.now();
+                screen_clicked = false;
+                return;
+            }
+        }
+
+        // Was a particle clicked?
+        for (var i = 0; i < particles.length; i++) {
+            if (particles[i].pos.distance(screen_clicked) < particles[i].size) {
+                particles[i].pos = screen_clicked;
+                particles[i].vel = new Vector(0,0);
+                particles[i].is_being_dragged = true;
+                dragging_particle = particles[i];
+                screen_clicked = false;
+                return;
+            }
+        }
+
+        // Create a new particle
+        new_particle = new Particle(screen_clicked.x, screen_clicked.y);
+        particles[particles.length] = new_particle;
+        new_particle.size = 10;
+        creating_particle = new_particle;
+        dragging_particle = new_particle;
+        new_particle.is_being_dragged = true;
+    }
+
+    if (pressed_keys[32]) {
+        changeGravity();
+        pressed_keys[32] = false;
+    }
+    last_input = performance.now();
+}
+
+let old_time_stamp = performance.now();
+
+function game_loop(time_stamp) {
+    var delta_time = (time_stamp - old_time_stamp) / 1000;
+    old_time_stamp = time_stamp;
+
+    // if delta_time is longer than a second (probably because the tab
+    // went to sleep and woke up) then skip rendering
+    if (delta_time > 1) { window.requestAnimationFrame(game_loop); return; }
+
+    // Calculate fps
+    fps = Math.round(1 / delta_time);
+    if (fps % 15 == 1)  fps -= 1;
+    if (fps % 15 == 14) fps += 1;
+
+    // Check for user inputs
+    check_key();
+    if (creating_particle && creating_particle.size < 150) {
+        creating_particle.size += 20 * delta_time;
+    }
+
+    // Update physics
+    for (var i = 0; i < particles.length; i++) { particles[i].run_physics(delta_time); }
+    for (var i = 0; i < particles.length; i++)
+        for (var j = i + 1; j < particles.length; j++)
+            particles[i].check_collision(particles[j]);
+
+    // Draw animations
+    draw(fps);
+    window.requestAnimationFrame(game_loop);
+}
+
+resizeCanvas();
+window.requestAnimationFrame(game_loop);
+
+document.onkeydown    = function(e) { pressed_keys[e.keyCode] = true; }
+document.onkeyup      = function(e) { pressed_keys[e.keyCode] = false; }
+document.onmousedown  = function(e) { screen_clicked = new Vector(e.clientX, e.clientY); }
+document.onmouseup    = function(e) {
+    if (creating_particle) { creating_particle.is_being_dragged = false; creating_particle = false; }
+    if (dragging_particle) { dragging_particle.is_being_dragged = false; dragging_particle = false; }
+}
+document.onmousemove  = function(e) { if (dragging_particle) dragging_particle.pos = new Vector(e.clientX, e.clientY); }
+document.ontouchstart = function(e) { if (e.touches.length == 1) screen_clicked = new Vector(e.touches[0].pageX, e.touches[0].pageY); }
+document.ontouchmove  = function(e) { if (dragging_particle) dragging_particle.pos = new Vector(e.touches[0].pageX, e.touches[0].pageY); }
+document.ontouchend   = function(e) {
+    if (creating_particle) { creating_particle.is_being_dragged = false; creating_particle = false; }
+    if (dragging_particle) { dragging_particle.is_being_dragged = false; dragging_particle = false; }
+}
+window.onresize = resizeCanvas;
+
+function toggleFullscreen() {
+    if (document.fullscreenElement)
+        document.exitFullscreen();
+    else
+        document.body.requestFullscreen();
+}
+
+function changeGravity() {
+    acc.rotate();
+    arrow_direction++;
+    arrow_direction %= 4;
+}
+
+function resizeCanvas() {
+    const canvas = document.getElementById("canvas");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+function clearBalls() {
+    particles = [];
+}
+
+</script>
+</html>
