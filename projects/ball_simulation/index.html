@@ -79,7 +79,11 @@ class Vector {
 }
 
 class Button {
-    static instances = [];
+    static all_buttons = [];
+
+    static get_buttons() {
+        return Button.all_buttons;
+    }
 
     constructor(x, y, width, height, text1, text2, action) {
         this.x = x;
@@ -89,7 +93,7 @@ class Button {
         this.text1 = text1;
         this.text2 = text2;
         this.action = action;
-        Button.instances.push(this);
+        Button.all_buttons.push(this);
     }
 
     draw(ctx) {
@@ -205,10 +209,10 @@ function draw(fps) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Draw the balls
-    for (var i = 0; i < particles.length; i++) { particles[i].draw(ctx); }
+    for (const particle of particles) particle.draw(ctx);
 
     // Draw buttons
-    for (var i = 0; i < Button.instances.length; i++) Button.instances[i].draw(ctx);
+    for (const button of Button.get_buttons()) button.draw(ctx);
 
     // Draw the arrow indicating the direction of gravity
     ctx.save();
@@ -249,9 +253,9 @@ function check_key() {
 
     if (screen_clicked) {
         // Was a button clicked?
-        for (var i = 0; i < Button.instances.length; i++) {
-            if (Button.instances[i].is_clicked(screen_clicked.x, screen_clicked.y)) {
-                Button.instances[i].do_action();
+        for (const button of Button.get_buttons()) {
+            if (button.is_clicked(screen_clicked.x, screen_clicked.y)) {
+                button.do_action();
                 last_input = performance.now();
                 screen_clicked = false;
                 return;
@@ -259,12 +263,12 @@ function check_key() {
         }
 
         // Was a particle clicked?
-        for (var i = 0; i < particles.length; i++) {
-            if (particles[i].pos.distance(screen_clicked) < particles[i].size) {
-                particles[i].pos = screen_clicked;
-                particles[i].vel = new Vector(0,0);
-                particles[i].is_being_dragged = true;
-                dragging_particle = particles[i];
+        for (const particle of particles) {
+            if (particle.pos.distance(screen_clicked) < particle.size) {
+                particle.pos = screen_clicked;
+                particle.vel = new Vector(0,0);
+                particle.is_being_dragged = true;
+                dragging_particle = particle;
                 screen_clicked = false;
                 return;
             }
@@ -308,7 +312,8 @@ function game_loop(time_stamp) {
     }
 
     // Update physics
-    for (var i = 0; i < particles.length; i++) { particles[i].run_physics(delta_time); }
+    for (const particle of particles) particle.run_physics(delta_time);
+    
     for (var i = 0; i < particles.length; i++)
         for (var j = i + 1; j < particles.length; j++)
             particles[i].check_collision(particles[j]);
