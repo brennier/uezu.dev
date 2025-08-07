@@ -41,6 +41,7 @@ button {
 /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
 #canvas {
 	outline: none;
+	border-radius: 5px;
 	display: block;
 	margin: 0;	
 	padding: 0;
@@ -81,11 +82,13 @@ button {
 
 #terminal-output {
   display: none;
+  border-radius: 5px;
+  box-sizing: border-box;
   width: 100%;
   height: 200px;
-  margin: 0 auto;
+  margin: 5px 0 0 0;
   border: 0;
-  padding: 0;
+  padding: 5px;
   background-color: black;
   color: white;
   font-family: 'Lucida Console', Monaco, monospace;
@@ -108,7 +111,7 @@ button {
 		(<button id="terminal-button">Terminal</button>) (<a href="https://github.com/brennier/hagemu">Source</a>)
 	</div>
       </div>
-      <textarea id="terminal-output" rows="8"></textarea>
+      <textarea readonly id="terminal-output" rows="8"></textarea>
     </div>   
 
     <script type='text/javascript'>
