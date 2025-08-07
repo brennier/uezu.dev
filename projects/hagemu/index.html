@@ -3,44 +3,68 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Hagemu</title>
+    <title>Hagemu Gameboy Emulator</title>
     <style>
-    
+
 body {
 	font-family: arial;
 	margin: 0;
 	padding: none;
+	background-color: #306657;
 }
 
-.emscripten {
+a {
+	color: #8abd4c;
+}
+
+button {
+	color: inherit;
+	background: none;
+	border: none;
+	padding: 0;
+	font: inherit;
+	cursor: pointer;
+	outline: inherit;
+	text-decoration: underline;
+}
+
+#content {
 	position: absolute;
+	background-color: #244c40;
+	border: 10px #244c40 solid;
+	border-radius: 10px;
 	top: 50%;
 	left: 50%;
 	transform: translate(-50%, -50%);
-	padding-right: 0;
-	margin-left: auto;
-	margin-right: auto;
-	display: block;
-	text-align: center;
 }
 
 /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
-canvas.emscripten {
-	border: 0px none;
-	background-color: black;
+#canvas {
+	display: block;
+	margin: 0;	
+	padding: 0;
+}
+
+#logo {
+	font-family: "Courier New", monospace;
+	font-weight: bold;
+	font-size: 2.5vh;
+	color: #8abd4c;
+	text-align: center;
+	padding-top: 10px;
 }
 
 @media (min-aspect-ratio: 10 / 9) {
-  canvas.emscripten {
-    height: 100vh;
+  #canvas {
+    height: 90vh;
     width: auto;
   }
 }
 
 @media (max-aspect-ratio: 10 / 9) {
-  canvas.emscripten {
+  #canvas {
     height: auto;
-    width: 100vw;
+    width: 90vw;
   }
 }
 
@@ -54,16 +78,13 @@ canvas.emscripten {
   color: rgb(120, 120, 120);
 }
 
-#output {
+#terminal-output {
   display: none;
   width: 100%;
   height: 200px;
   margin: 0 auto;
-  margin-top: 0px;
-  border-left: 0px;
-  border-right: 0px;
-  padding-left: 0px;
-  padding-right: 0px;
+  border: 0;
+  padding: 0;
   background-color: black;
   color: white;
   font-family: 'Lucida Console', Monaco, monospace;
@@ -76,18 +97,37 @@ canvas.emscripten {
   </head>
   <body>
 
-    <div class="spinner" id='spinner'></div>
-    <div class="emscripten" id="status"></div>
+    <div id='spinner'></div>
+    <div id="status"></div>
     <progress value="0" max="100" id="progress" hidden=1></progress>
-    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
-    <textarea id="output" rows="8"></textarea>
+    <div id="content">
+      <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
+      <div id="logo">Hagemu Gameboy Emulator
+	<div style="font-size: 1.5vh; vertical-align: middle; white-space: nowrap;">
+		(<button id="terminal-button">Terminal</button>) (<a href="https://github.com/brennier/hagemu">Source</a>)
+	</div>
+      </div>
+      <textarea id="terminal-output" rows="8"></textarea>
+    </div>   
 
     <script type='text/javascript'>
+
+      var button = document.getElementById('terminal-button');
+      button.onclick = function() {
+        var div = document.getElementById('terminal-output');
+        if (div.style.display == 'block') {
+          div.style.display = 'none';
+        }
+        else {
+          div.style.display = 'block';
+        }
+     };
+
       var statusElement = document.getElementById('status');
       var progressElement = document.getElementById('progress');
       var spinnerElement = document.getElementById('spinner');
       var canvasElement = document.getElementById('canvas');
-      var outputElement = document.getElementById('output');
+      var outputElement = document.getElementById('terminal-output');
       if (outputElement) outputElement.value = ''; // clear browser cache
 
       // As a default initial behavior, pop up an alert when webgl context is lost. To make your
