@@ -1,13 +1,19 @@
 {
   "name": "Hagemu GameBoy Emulator",
   "short_name": "Hagemu",
-  "start_url": "/",
+  "start_url": "./",
+  "scope": ".",
   "display": "fullscreen",
   "background_color": "#306657",
   "theme_color": "#20453A",
   "icons": [
     {
-      "src": "/hagemu_icon.png",
+      "src": "./hagemu_icon192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./hagemu_icon512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
